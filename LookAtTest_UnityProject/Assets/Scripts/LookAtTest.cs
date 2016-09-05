@@ -25,9 +25,13 @@ public class LookAtTest : MonoBehaviour
     }
 
     public Transform character;
+    public Transform lookAtSource;
 
     public float lookAtWeight; // set in inspector
     private float _lookAtWeight;
+
+    public float lookAtSpeed = 1f;
+    private Quaternion currentOffset;
 
     [Header("RIG JOINTS")]
     public JointData r_eye;
@@ -57,15 +61,22 @@ public class LookAtTest : MonoBehaviour
 
     public void LateUpdate()
     {
-        Vector3 lookDir = -character.InverseTransformDirection(transform.position - head.joint.position).normalized;
+        Vector3 lookDir = -character.InverseTransformDirection(transform.position - lookAtSource.position).normalized;
         float tempX, tempY, tempZ;
 
-        Debug.Log("lookDir = " + lookDir);
+       // Debug.Log("lookDir = " + lookDir);
 
-        tempX = Mathf.Atan2(lookDir.z, lookDir.x) * Mathf.Rad2Deg + head.xOffset;
-        tempY = (Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg + head.yOffset);
-        tempZ = (Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.z)) * Mathf.Rad2Deg) + head.zOffset;
+        tempX = Mathf.Atan2(-lookDir.x, -Mathf.Abs(lookDir.z)) * Mathf.Rad2Deg + head.xOffset;
+        tempY = Mathf.Lerp(Mathf.Atan2(lookDir.y, lookDir.x), Mathf.Atan2(lookDir.y, lookDir.z), (Mathf.Abs(head.joint.localRotation.eulerAngles.y) % 90 / 90f)) * Mathf.Rad2Deg + head.yOffset;
 
-        head.joint.localRotation = Quaternion.Euler(head.joint.localRotation.eulerAngles + new Vector3(tempX, 0, tempZ));
+
+        float zLerp = Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg < 90 ? (Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z) * Mathf.Rad2Deg) % 180f / 180f) * 2 : MapUtility.Map(Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg, 90, 180, 1, 0);
+        tempZ = Mathf.Lerp(Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.z)), Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.x)), zLerp) * Mathf.Rad2Deg + head.zOffset;
+
+        currentOffset = Quaternion.Slerp(currentOffset, Quaternion.Euler(new Vector3(tempX, 0, tempZ)), Time.deltaTime * lookAtSpeed);
+        //Debug.Log(currentOffset.eulerAngles);
+
+        head.joint.localRotation = Quaternion.Euler(head.joint.localRotation.eulerAngles + currentOffset.eulerAngles);
+        Debug.Log("on");
     }
 }
