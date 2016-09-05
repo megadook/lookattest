@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class LookAtUndo : MonoBehaviour
+public class LookAtTargetUndo : MonoBehaviour
 {
     public Transform dragObj;
     public ClickNDrag[] clickNDrags;
