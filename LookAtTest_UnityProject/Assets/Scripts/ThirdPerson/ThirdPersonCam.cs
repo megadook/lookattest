@@ -173,7 +173,7 @@ public class ThirdPersonCam : MonoBehaviour
 
     /// <summary>
     /// fills input data
-    /// TODO read zoom input
+    /// TODO read zoom and snapping input
     /// </summary>
     void ReadPlayerInput()
     {

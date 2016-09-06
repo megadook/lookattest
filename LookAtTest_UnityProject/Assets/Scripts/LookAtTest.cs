@@ -27,11 +27,20 @@ public class LookAtTest : MonoBehaviour
     public Transform character;
     public Transform lookAtSource;
 
-    public float lookAtWeight; // set in inspector
-    private float _lookAtWeight;
+    public float lookAtWeight;
 
     public float lookAtSpeed = 1f;
-    private Quaternion currentOffset;
+
+    [Header("WEIGHTS")]
+    public float eyeWeight = 0f;
+
+    [Space(5)]
+    public float headWeight = 0f;
+    public float neckWeight = 0f;
+
+    [Space(5)]
+    public float chestWeight = 0f;
+    public float[] spineWeight;
 
     [Header("RIG JOINTS")]
     public JointData r_eye;
@@ -45,6 +54,13 @@ public class LookAtTest : MonoBehaviour
     public JointData chest;
     public JointData[] spine;
 
+    // offsets blended in through lookAtWeight
+    private Quaternion currentRightEyeOffset;
+    private Quaternion currentLeftEyeOffset;
+    private Quaternion currentHeadOffset;
+    private Quaternion currentNeckOffset;
+    private Quaternion currentChestOffset;
+    private Quaternion[] currentSpineOffset;
 
     public void Awake()
     {
@@ -73,10 +89,9 @@ public class LookAtTest : MonoBehaviour
         float zLerp = Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg < 90 ? (Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z) * Mathf.Rad2Deg) % 180f / 180f) * 2 : MapUtility.Map(Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg, 90, 180, 1, 0);
         tempZ = Mathf.Lerp(Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.z)), Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.x)), zLerp) * Mathf.Rad2Deg + head.zOffset;
 
-        currentOffset = Quaternion.Slerp(currentOffset, Quaternion.Euler(new Vector3(tempX, 0, tempZ)), Time.deltaTime * lookAtSpeed);
+        currentHeadOffset = Quaternion.Slerp(currentHeadOffset, Quaternion.Euler(new Vector3(tempX, 0, tempZ)), Time.deltaTime * lookAtSpeed);
         //Debug.Log(currentOffset.eulerAngles);
 
-        head.joint.localRotation = Quaternion.Euler(head.joint.localRotation.eulerAngles + currentOffset.eulerAngles);
-        Debug.Log("on");
+        head.joint.localRotation = Quaternion.Euler(head.joint.localRotation.eulerAngles + currentHeadOffset.eulerAngles);
     }
 }

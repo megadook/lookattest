@@ -56,6 +56,11 @@ public class ThirdPersonControl : MonoBehaviour
         {
             anim = GetComponent<Animator>();
         }
+
+        if (anim != null)
+        {
+            anim.applyRootMotion = false;
+        }
     }
 
     void FixedUpdate()
@@ -81,7 +86,7 @@ public class ThirdPersonControl : MonoBehaviour
         targetMoveSpeed = moveDir.magnitude * maxMoveSpeed;
 
         // walk speed multiplier
-        if (Input.GetKey(KeyCode.LeftShift)) { moveDir *= 0.5f; }
+        if (Input.GetKey(KeyCode.LeftShift)) { targetMoveSpeed *= 0.5f; }
 
         Move(moveDir);
     }
@@ -97,12 +102,13 @@ public class ThirdPersonControl : MonoBehaviour
 
         float turnAmount = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
         float forwardAmount = moveDir.z;
+        Debug.Log(forwardAmount);
 
         ApplyRotation(turnAmount, forwardAmount);
 
         ApplyMovement(forwardAmount, turnAmount);
 
-        //UpdateAnimator(moveDir);
+        UpdateAnimator(forwardAmount, turnAmount);
     }
 
     void ApplyRotation(float turnAmount, float forwardAmount)
@@ -115,6 +121,12 @@ public class ThirdPersonControl : MonoBehaviour
     {
         currentMoveSpeed = Mathf.Clamp(0f, targetMoveSpeed, currentMoveSpeed += (moveAcceleration * Time.deltaTime));
         transform.position = transform.position + (transform.forward * forwardAmount * currentMoveSpeed * Time.deltaTime);
+    }
+
+    void UpdateAnimator(float forwardAmount, float turnAmount)
+    {
+        anim.SetFloat("Forward", MapUtility.Map(currentMoveSpeed, 0, maxMoveSpeed, 0, 1));
+        anim.SetFloat("Turn", MapUtility.Map(turnAmount, -180, 180, -1, 1));
     }
 
     void GroundCheck()
