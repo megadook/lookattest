@@ -2,7 +2,7 @@
 using System.Collections;
 
 
-public class LookAtTest : MonoBehaviour
+public class CharacterLookAt : MonoBehaviour
 {
     [System.Serializable]
     // holds a joint as well as data used for look at functionality
@@ -11,7 +11,7 @@ public class LookAtTest : MonoBehaviour
         public Transform joint; // the joint itself
 
         [Space(5)]
-        public Vector3 offset; // the correction offset to be applied on top of lookat rotation
+        public Vector3 correctionOffset; // the correction offset to be applied on top of lookat rotation
 
         [HideInInspector]
         public Quaternion currentOffset; // the current offset rotation used to lookat
@@ -43,12 +43,18 @@ public class LookAtTest : MonoBehaviour
     // character's root
     public Transform character;
 
-    // the source to use when checking for look at direction
-    public Transform lookAtSource;
+    // the target to look at
+    public Transform target;
 
-    [Space(5)]
+    // the source to use when checking for look at direction
+    public Transform source;
+
+    [Space(10)]
     public float lookAtSpeed = 1f;
+
     [Range(0, 1)]
+    // designates whether look at rotation is additive ontop of animation clips
+    // or overrides all other movement, (0 - additive, 1 - override)
     public float overrideWeight = 0f;
 
 
@@ -78,7 +84,7 @@ public class LookAtTest : MonoBehaviour
 
 
     // record base rotations while the joints are still in T pose
-    public void Awake()
+    private void Awake()
     {
         // get rig's initial "look forward" rotations
         head.RecordBaseRot();
@@ -96,7 +102,7 @@ public class LookAtTest : MonoBehaviour
     }
 
     // make sure head/body weighting is accurate before applying the lookat in LateUpdate
-    public void Update()
+    private void Update()
     {
         ReadWeightChange();
     }
@@ -120,7 +126,7 @@ public class LookAtTest : MonoBehaviour
     }
 
     // apply the LookAt rotation after physics, object movements, and animations have been applied
-    public void LateUpdate()
+    private void LateUpdate()
     {
         ApplyLookAt();
     }
@@ -134,72 +140,74 @@ public class LookAtTest : MonoBehaviour
     /// 
     /// NOTE: All rigs are different, chances are a rig that wasn't set up like mine may not behave properly with these values.
     /// </summary>
-    public void ApplyLookAt()
+    private void ApplyLookAt()
     {
-        Vector3 lookDir = -character.InverseTransformDirection(transform.position - lookAtSource.position).normalized;
+        Vector3 lookDir = -character.InverseTransformDirection(target.position - source.position).normalized;
         Vector3 lookRot = Vector3.zero;
-
-        // the WORLD UP axis (in this case, the joint's local Z) needs to interpolate between a tangent calculated with the CHARACTER's local X and local Z
-        float zLerp;
 
         // trig!    
         lookRot.x = Mathf.Atan2(-lookDir.x, -Mathf.Abs(lookDir.z)) * Mathf.Rad2Deg;
 
+        // the WORLD UP axis (in this case, the joint's local Z) needs to interpolate between a tangent calculated with the CHARACTER's local X and local Z
+        float zLerp;
         zLerp = Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg < 90 ? (Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z) * Mathf.Rad2Deg) % 180f / 180f) * 2 : MapUtility.Map(Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg, 90, 180, 1, 0);
         lookRot.z = Mathf.Lerp(Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.z)), Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.x)), zLerp) * Mathf.Rad2Deg;
 
-        #region head
         // head
         UpdateCurrentOffset(ref head, lookRot, headWeight);
-
-        head.joint.localRotation = Quaternion.Slerp(Quaternion.Euler(head.joint.localRotation.eulerAngles + head.currentOffsetWeighted.eulerAngles), Quaternion.Euler(head.baseRot + head.currentOffsetWeighted.eulerAngles), overrideWeight);
+        ApplyRotationToJoint(head);
 
         // neck
         UpdateCurrentOffset(ref neck, lookRot, headWeight);
+        ApplyRotationToJoint(neck);
 
-        neck.joint.localRotation = Quaternion.Slerp(Quaternion.Euler(neck.joint.localRotation.eulerAngles + neck.currentOffsetWeighted.eulerAngles), Quaternion.Euler(neck.baseRot + neck.currentOffsetWeighted.eulerAngles), overrideWeight);
-        #endregion
-
-
-        #region body
         // chest
         UpdateCurrentOffset(ref chest, lookRot, bodyWeight);
-
-        chest.joint.localRotation = Quaternion.Slerp(Quaternion.Euler(chest.joint.localRotation.eulerAngles + chest.currentOffsetWeighted.eulerAngles), Quaternion.Euler(chest.baseRot + chest.currentOffsetWeighted.eulerAngles), overrideWeight);
+        ApplyRotationToJoint(chest);
 
         // spine
         for (int i = 0; i < spine.Length; i++)
         {
             UpdateCurrentOffset(ref spine[i], lookRot, bodyWeight);
-
-            spine[i].joint.localRotation = Quaternion.Slerp(Quaternion.Euler(spine[i].joint.localRotation.eulerAngles + spine[i].currentOffsetWeighted.eulerAngles), Quaternion.Euler(spine[i].baseRot + spine[i].currentOffsetWeighted.eulerAngles), overrideWeight);
+            ApplyRotationToJoint(spine[i]);
         }
-        #endregion
     }
 
     /// <summary>
-    /// 
+    /// updates the final offset rotation for a joint
     /// </summary>
-    /// <param name="currentOffset"> the current offset </param>
-    /// <param name="lookRot"></param>
-    /// <param name="joint"></param>
-    /// <param name="bodySectionWeight"></param>
+    /// <param name="joint"> the JointData to update </param>
+    /// <param name="lookRot"> the calculated look rotation </param>
+    /// <param name="bodySectionWeight"> the weight setting for this joint's body segment </param>
     /// <returns></returns>
-    void UpdateCurrentOffset(ref JointData joint, Vector3 lookRot, float bodySectionWeight)
+    private void UpdateCurrentOffset(ref JointData joint, Vector3 lookRot, float bodySectionWeight)
     {
         // invert check
         if (joint.invertX) { lookRot.x *= -1; }
         if (joint.invertZ) { lookRot.z *= -1; }
 
         // get angle values by rotating from T-pose by the lookRotation and offset
-        Vector3 currentOffsetEulerAngles = new Vector3(joint.baseRot.x + lookRot.x + joint.offset.x, 
-                                                       joint.baseRot.y + lookRot.y + joint.offset.y, 
-                                                       joint.baseRot.z + lookRot.z + joint.offset.z);
+        Vector3 currentOffsetEulerAngles = new Vector3(joint.baseRot.x + lookRot.x + joint.correctionOffset.x, 
+                                                       joint.baseRot.y + lookRot.y + joint.correctionOffset.y, 
+                                                       joint.baseRot.z + lookRot.z + joint.correctionOffset.z);
 
         // update offset over time by speed
         joint.currentOffset = Quaternion.Slerp(joint.currentOffset, Quaternion.Euler(currentOffsetEulerAngles), Time.deltaTime * lookAtSpeed);
 
         // weight offset by joint and body section weights
         joint.currentOffsetWeighted = Quaternion.Slerp(Quaternion.identity, joint.currentOffset, joint.weight * bodySectionWeight);
+    }
+
+    /// <summary>
+    /// applies the calculated offset rotation to a joint
+    /// (additive vs overridden based on overrideWeight)
+    /// </summary>
+    /// <param name="joint"> the joint to apply rotation to </param>
+    private void ApplyRotationToJoint(JointData joint)
+    {
+        Quaternion additiveRot = Quaternion.Euler(joint.joint.localRotation.eulerAngles + joint.currentOffsetWeighted.eulerAngles);
+        Quaternion overrideRot = Quaternion.Euler(joint.baseRot + joint.currentOffsetWeighted.eulerAngles);
+
+        joint.joint.localRotation = Quaternion.Slerp(additiveRot, overrideRot, overrideWeight);
     }
 }

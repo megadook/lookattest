@@ -70,7 +70,7 @@ public class ThirdPersonCam : MonoBehaviour
     // the point at which the camera pivots around
     private Transform pivotTrans;
     // the transform used for various effects
-    private Transform effectTrans;
+    //private Transform effectTrans;
 
     private Vector3 lastTargetPosition;
 
@@ -82,10 +82,10 @@ public class ThirdPersonCam : MonoBehaviour
     float cameraInputY = 0;
 
     // camera zoom
-    float cameraZoomInput = 0;
+    //float cameraZoomInput = 0;
 
     // button for camera re-centering
-    bool cameraSnapInput = false;
+    //bool cameraSnapInput = false;
 
     // is there currently input read for player/camera movement
     bool movementInput
@@ -120,7 +120,7 @@ public class ThirdPersonCam : MonoBehaviour
         // grab rig components
         cam = GetComponentInChildren<Camera>().transform;
         pivotTrans = cam.parent.parent;
-        effectTrans = cam.parent;
+        //effectTrans = cam.parent;
 
         // hide/lock the cursor
         Cursor.lockState = CursorLockMode.Locked;

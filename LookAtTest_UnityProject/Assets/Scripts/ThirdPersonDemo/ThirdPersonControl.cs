@@ -102,7 +102,6 @@ public class ThirdPersonControl : MonoBehaviour
 
         float turnAmount = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
         float forwardAmount = moveDir.z;
-        Debug.Log(forwardAmount);
 
         ApplyRotation(turnAmount, forwardAmount);
 
@@ -127,6 +126,7 @@ public class ThirdPersonControl : MonoBehaviour
     {
         anim.SetFloat("Forward", MapUtility.Map(currentMoveSpeed, 0, maxMoveSpeed, 0, 1));
         anim.SetFloat("Turn", MapUtility.Map(turnAmount, -180, 180, -1, 1));
+        anim.SetBool("OnGround", grounded);
     }
 
     void GroundCheck()
