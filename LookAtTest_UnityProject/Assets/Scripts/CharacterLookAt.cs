@@ -136,6 +136,7 @@ public class CharacterLookAt : MonoBehaviour
     /// Keeps in mind shared weighting between the character's head and upper body,
     /// as well as local weighting in those two groups of joints.
     /// 
+    /// TODO EYEEEZZZ
     /// TODO possibly incorporate some local Y rotation?
     /// 
     /// NOTE: All rigs are different, chances are a rig that wasn't set up like mine may not behave properly with these values.
@@ -149,8 +150,8 @@ public class CharacterLookAt : MonoBehaviour
         lookRot.x = Mathf.Atan2(-lookDir.x, -Mathf.Abs(lookDir.z)) * Mathf.Rad2Deg;
 
         // the WORLD UP axis (in this case, the joint's local Z) needs to interpolate between a tangent calculated with the CHARACTER's local X and local Z
-        float zLerp;
-        zLerp = Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg < 90 ? (Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z) * Mathf.Rad2Deg) % 180f / 180f) * 2 : MapUtility.Map(Mathf.Abs(Mathf.Atan2(lookDir.x, lookDir.z)) * Mathf.Rad2Deg, 90, 180, 1, 0);
+        float tanXZ = Mathf.Atan2(lookDir.x, lookDir.z);
+        float zLerp = Mathf.Abs(tanXZ) * Mathf.Rad2Deg < 90 ? (Mathf.Abs(tanXZ * Mathf.Rad2Deg) % 180f / 180f) * 2 : MapUtility.Map(Mathf.Abs(tanXZ) * Mathf.Rad2Deg, 90, 180, 1, 0);
         lookRot.z = Mathf.Lerp(Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.z)), Mathf.Atan2(lookDir.y, -Mathf.Abs(lookDir.x)), zLerp) * Mathf.Rad2Deg;
 
         // head
